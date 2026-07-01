@@ -270,7 +270,7 @@ router.get('/summary', authMiddleware, async (c) => {
     .map(([date, v]) => ({ date, ...v }))
 
   return c.json({
-    by_reason: byReason,
+    by_reason: Object.entries(byReason).map(([reason, v]) => ({ reason, ...v })),
     by_owner: Object.values(byOwner),
     total_score: Number(totalScore.toFixed(2)),
     open_count: rows.length,

@@ -72,7 +72,8 @@ interface CrownJewels {
 
 interface Posture {
   overall_score?: number | null
-  grade?: string
+  grade?: string | number | null
+  letter?: string | null
   open_exposures?: number | null
   total_exposures?: number | null
   contained_exposures?: number | null
@@ -285,8 +286,12 @@ export default function ReportsPage() {
       const vals = historyRows.map((h) => h.mttc_minutes).filter((v): v is number => v != null)
       return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
     })()
-  const grade = posture?.grade ?? null
-  const overallScore = posture?.overall_score ?? null
+  // Backend returns `grade` as a numeric score (0-100) and `letter` as the
+  // insurer-facing letter grade (A-F). Prefer `letter` for the letter badge and
+  // fall back to `overall_score`/`grade` (number) for the numeric score.
+  const grade = posture?.letter ?? (typeof posture?.grade === 'string' ? posture.grade : null)
+  const overallScore =
+    posture?.overall_score ?? (typeof posture?.grade === 'number' ? posture.grade : null)
   const maxJewel = Math.max(1, ...jewels.map((j) => Number(j.blast_radius_score ?? j.score ?? j.reachable_count ?? 0)))
 
   if (!authed) return <PageSpinner label="Authenticating..." />
@@ -322,9 +327,9 @@ export default function ReportsPage() {
               value={grade ?? (overallScore != null ? Math.round(Number(overallScore)) : '—')}
               tone={
                 grade
-                  ? ['A', 'B'].includes(grade.toUpperCase().charAt(0))
+                  ? ['A', 'B'].includes(String(grade ?? '').toUpperCase().charAt(0))
                     ? 'green'
-                    : grade.toUpperCase().charAt(0) === 'C'
+                    : String(grade ?? '').toUpperCase().charAt(0) === 'C'
                       ? 'amber'
                       : 'red'
                   : 'default'
