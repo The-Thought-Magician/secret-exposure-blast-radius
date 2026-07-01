@@ -27,6 +27,7 @@ const PERMISSION_MULTIPLIER: Record<string, number> = {
 interface ReachableResource {
   resource_id: string
   name: string
+  type: string | null
   sensitivity: string
   depth: number
   path: string[]
@@ -36,6 +37,8 @@ interface GraphNode {
   id: string
   label: string
   kind: string // 'secret' | 'resource'
+  depth: number
+  type: string | null
 }
 interface GraphEdge {
   from: string
@@ -63,6 +66,7 @@ function computeBlastRadius(
   resourceRows: Array<{
     id: string
     name: string
+    type: string
     sensitivity: string
     contains_secret_id: string | null
   }>,
@@ -102,6 +106,8 @@ function computeBlastRadius(
       id: startSecretId,
       label: startSecret.name,
       kind: 'secret',
+      depth: 0,
+      type: null,
     })
   }
   queue.push({ secretId: startSecretId, depth: 0, path: [startSecretId] })
@@ -126,6 +132,8 @@ function computeBlastRadius(
           id: resource.id,
           label: resource.name,
           kind: 'resource',
+          depth: resourceDepth,
+          type: resource.type,
         })
       }
       // Register secret->resource edge (dedup).
@@ -142,6 +150,7 @@ function computeBlastRadius(
         reachableResources.set(resource.id, {
           resource_id: resource.id,
           name: resource.name,
+          type: resource.type,
           sensitivity: resource.sensitivity,
           depth: resourceDepth,
           path: resourcePath,
@@ -158,6 +167,8 @@ function computeBlastRadius(
               id: nextSecretId,
               label: nextSecret.name,
               kind: 'secret',
+              depth: resourceDepth,
+              type: null,
             })
           }
           // resource->contained secret edge.
@@ -239,6 +250,7 @@ router.get('/:secretId', authMiddleware, async (c) => {
     resourceRows.map((r) => ({
       id: r.id,
       name: r.name,
+      type: r.type,
       sensitivity: r.sensitivity,
       contains_secret_id: r.contains_secret_id,
     })),
@@ -266,6 +278,7 @@ router.get('/', authMiddleware, async (c) => {
   const resourceRefs = resourceRows.map((r) => ({
     id: r.id,
     name: r.name,
+    type: r.type,
     sensitivity: r.sensitivity,
     contains_secret_id: r.contains_secret_id,
   }))
