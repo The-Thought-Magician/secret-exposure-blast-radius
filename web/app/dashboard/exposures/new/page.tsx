@@ -20,15 +20,11 @@ interface Secret {
 }
 
 const VECTORS = [
-  'git-commit',
-  'log-leak',
-  'ci-artifact',
-  'public-bucket',
-  'phishing',
-  'third-party-breach',
-  'insider',
-  'hardcoded-config',
-  'screenshot',
+  'git_commit',
+  'log_dump',
+  'ticket_paste',
+  'third_party_breach',
+  'screen_share',
   'other',
 ]
 
@@ -51,7 +47,7 @@ export default function NewExposurePage() {
   const [secretId, setSecretId] = useState('')
   const [secretSearch, setSecretSearch] = useState('')
   const [title, setTitle] = useState('')
-  const [vector, setVector] = useState('git-commit')
+  const [vector, setVector] = useState('git_commit')
   const [severity, setSeverity] = useState('')
   const [exposedSince, setExposedSince] = useState('')
   const [detectedAt, setDetectedAt] = useState(nowLocalInput())
@@ -251,7 +247,7 @@ export default function NewExposurePage() {
                   <select id="vector" value={vector} onChange={(e) => setVector(e.target.value)} className={`mt-1 ${fieldClass}`}>
                     {VECTORS.map((v) => (
                       <option key={v} value={v}>
-                        {v}
+                        {v.replace(/_/g, ' ')}
                       </option>
                     ))}
                   </select>
