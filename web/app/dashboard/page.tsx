@@ -26,7 +26,21 @@ interface DashboardData {
     crown_jewel_count?: number
   } | null
   reuse_risk?: { clusters?: number; reused_secrets?: number; high_risk?: number; top_score?: number }
-  recent?: Array<{ id: string; kind?: string; title?: string; body?: string; severity?: string; status?: string; created_at?: string }>
+  recent?: Array<{
+    id: string
+    actor?: string | null
+    action?: string
+    entity_type?: string
+    entity_id?: string | null
+    detail?: unknown
+    created_at?: string
+    // legacy/alternate shapes, kept for backwards compatibility
+    kind?: string
+    title?: string
+    body?: string
+    severity?: string
+    status?: string
+  }>
 }
 
 function fmtMinutes(mins?: number | null): string {
@@ -310,22 +324,32 @@ export default function DashboardPage() {
                   <p className="text-sm text-zinc-500">No recent incidents or notifications.</p>
                 ) : (
                   <ul className="space-y-3">
-                    {recent.slice(0, 6).map((r) => (
-                      <li key={r.id} className="flex items-start gap-2">
-                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm text-zinc-200">{r.title ?? r.kind ?? 'Event'}</div>
-                          {(r.body || r.severity || r.status) && (
-                            <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
-                              {(r.severity || r.status) && (
-                                <Badge tone={severityTone(r.severity ?? r.status)}>{r.severity ?? r.status}</Badge>
-                              )}
-                              {r.body && <span className="truncate">{r.body}</span>}
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    ))}
+                    {recent.slice(0, 6).map((r) => {
+                      const label =
+                        r.title ??
+                        (r.action
+                          ? `${r.action}${r.entity_type ? ` ${r.entity_type}` : ''}`
+                          : r.kind ?? 'Event')
+                      const idSnippet = r.entity_id ? r.entity_id.slice(0, 8) : null
+                      return (
+                        <li key={r.id} className="flex items-start gap-2">
+                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm text-zinc-200 capitalize">{label}</div>
+                            {(r.body || r.severity || r.status || r.actor || idSnippet) && (
+                              <div className="mt-0.5 flex items-center gap-2 text-xs text-zinc-500">
+                                {(r.severity || r.status) && (
+                                  <Badge tone={severityTone(r.severity ?? r.status)}>{r.severity ?? r.status}</Badge>
+                                )}
+                                {r.body && <span className="truncate">{r.body}</span>}
+                                {!r.body && r.actor && <span className="truncate">by {r.actor}</span>}
+                                {!r.body && idSnippet && <span className="font-mono truncate">{idSnippet}</span>}
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </CardBody>

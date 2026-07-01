@@ -174,11 +174,20 @@ router.get('/crown-jewels', async (c) => {
       resource_id: string
       name: string
       sensitivity: string
+      type: string | null
+      environment: string | null
       exposure_count: number
+      reachable_count: number
       min_depth: number
       max_score: number
+      blast_radius_score: number
     }
   >()
+
+  // Resolve type/environment fresh from the resources table rather than the
+  // (possibly stale, historically type/environment-less) snapshot JSON.
+  const allResources = await db.select().from(resources).where(eq(resources.user_id, userId))
+  const resourceById = new Map(allResources.map((r) => [r.id, r]))
 
   for (const s of snaps) {
     const reachable = (s.reachable_resources ?? []) as Array<{
@@ -191,19 +200,26 @@ router.get('/crown-jewels', async (c) => {
     for (const r of reachable) {
       // Crown jewels and PII/confidential resources are the assets that matter.
       if (!['crown_jewel', 'pii', 'confidential'].includes(r.sensitivity)) continue
+      const resourceInfo = resourceById.get(r.resource_id)
       const prev = agg.get(r.resource_id)
       if (prev) {
         prev.exposure_count += 1
+        prev.reachable_count += 1
         prev.min_depth = Math.min(prev.min_depth, r.depth)
         prev.max_score = Math.max(prev.max_score, s.score ?? 0)
+        prev.blast_radius_score = prev.max_score
       } else {
         agg.set(r.resource_id, {
           resource_id: r.resource_id,
           name: r.name,
           sensitivity: r.sensitivity,
+          type: resourceInfo?.type ?? null,
+          environment: resourceInfo?.environment ?? null,
           exposure_count: 1,
+          reachable_count: 1,
           min_depth: r.depth,
           max_score: s.score ?? 0,
+          blast_radius_score: s.score ?? 0,
         })
       }
     }
@@ -222,9 +238,13 @@ router.get('/crown-jewels', async (c) => {
         resource_id: r.id,
         name: r.name,
         sensitivity: r.sensitivity,
+        type: r.type ?? null,
+        environment: r.environment ?? null,
         exposure_count: 0,
+        reachable_count: 0,
         min_depth: -1,
         max_score: 0,
+        blast_radius_score: 0,
       })
     }
   }
