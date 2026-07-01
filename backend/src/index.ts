@@ -14,6 +14,13 @@ import {
 } from './db/schema.js'
 import { eq } from 'drizzle-orm'
 
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection', reason)
+})
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception', err)
+})
+
 import secretsRoutes from './routes/secrets.js'
 import storesRoutes from './routes/stores.js'
 import copiesRoutes from './routes/copies.js'
